@@ -1,0 +1,71 @@
+services:
+  # ---------------------------------------------------------------------------
+  # ollama — local LLM server, OpenAI-compatible API on :11434/v1.
+  # Long-running. The model itself is pulled by the pipeline container on
+  # startup (pipeline.ensure_model) so we don't depend on Compose's
+  # condition: service_completed_successfully, which hangs in some
+  # Compose v5.x versions.
+  # ---------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: spec-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      # Informational only — the pipeline container has its own retry on
+      # startup. `compose ps` shows healthy when the server is ready.
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # pipeline — the spec-driven development pipeline itself.
+  # Defaults to LLM_PROVIDER=ollama and points at the ollama service above.
+  # On startup it pulls the configured model if not already cached.
+  # ---------------------------------------------------------------------------
+  pipeline:
+    build: .
+    image: spec-pipeline:latest
+    container_name: spec-pipeline
+    # Plain `depends_on` (no condition:) just enforces start order. We
+    # avoid `condition: service_healthy` because some Compose versions
+    # hang forever waiting for the health transition.
+    depends_on:
+      - ollama
+    environment:
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5-coder:1.5b}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      # Forwarded so users who already have these set don't need to rename.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Interactive by default. Set PIPELINE_AUTO_APPROVE=1 (e.g. in CI) to
+      # skip the two human-approval checkpoints.
+      PIPELINE_AUTO_APPROVE: ${PIPELINE_AUTO_APPROVE:-0}
+      SPEC_FILE: ${SPEC_FILE:-specs/user_authentication.yaml}
+    # tty + stdin_open let Rich render its UI and read approval input from
+    # your terminal when you run `docker compose run --rm pipeline`.
+    tty: true
+    stdin_open: true
+    volumes:
+      # Persist the audit log + generated code/tests on the host so a reviewer
+      # can inspect them without entering the container.
+      - ./audit_logs:/app/audit_logs
+      - ./src:/app/src
+      - ./tests:/app/tests
+    # Default command runs the example spec interactively. Override at the
+    # CLI to add --verbose, --auto-approve, a different spec, etc.:
+    #
+    #   docker compose run --rm pipeline specs/user_authentication.yaml --verbose
+    #   docker compose run --rm pipeline specs/user_authentication.yaml --auto-approve
+    command: ["specs/user_authentication.yaml"]
+
+volumes:
+  ollama-data:
+    name: spec-pipeline-ollama-data

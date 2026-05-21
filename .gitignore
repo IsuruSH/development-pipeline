@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Secrets — never commit any real env file or key material
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt
+credentials.json
+service-account*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pipeline runtime artefacts
+# Audit logs ARE committed for the example end-to-end run, but ignore stray ones.
+audit_logs/scratch/
+audit_logs/tmp/
+
+# AI-generated implementation + test code from pipeline runs.
+# These are produced fresh each run; the sandbox roots themselves
+# (src/__init__.py, tests/__init__.py, tests/pipeline_sandbox_test.py)
+# are kept so the sandbox & gates have something to point at.
+src/*.py
+!src/__init__.py
+tests/test_*.py
+tests/_generated/

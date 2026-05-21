@@ -1,0 +1,35 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	intake(intake)
+	planner(planner)
+	approval_plan(approval_plan)
+	implementer(implementer)
+	test_generator(test_generator)
+	quality_gates(quality_gates)
+	approval_deploy(approval_deploy)
+	finalize(finalize)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> intake;
+	approval_deploy --> finalize;
+	approval_plan -.-> finalize;
+	approval_plan -.-> implementer;
+	approval_plan -.-> planner;
+	implementer -.-> finalize;
+	implementer -.-> test_generator;
+	intake -.-> finalize;
+	intake -.-> planner;
+	planner -.-> approval_plan;
+	planner -.-> finalize;
+	quality_gates -.-> approval_deploy;
+	quality_gates -.-> finalize;
+	test_generator -.-> finalize;
+	test_generator -.-> quality_gates;
+	finalize --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

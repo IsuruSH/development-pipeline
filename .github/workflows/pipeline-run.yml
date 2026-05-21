@@ -1,0 +1,64 @@
+name: pipeline-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Spec file to run the pipeline against"
+        required: false
+        default: "specs/user_authentication.yaml"
+      model:
+        description: "Anthropic model id"
+        required: false
+        default: "claude-sonnet-4-5"
+  push:
+    branches: [main]
+    paths:
+      - "specs/**"
+      - "pipeline/**"
+      - "run_pipeline.py"
+
+jobs:
+  run-pipeline:
+    name: end-to-end pipeline run
+    runs-on: ubuntu-latest
+    # Skip on PRs from forks where the API key won't be available.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run pipeline end-to-end
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_MODEL: ${{ inputs.model || 'claude-sonnet-4-5' }}
+          PIPELINE_AUTO_APPROVE: "1"
+        run: |
+          python run_pipeline.py "${{ inputs.spec || 'specs/user_authentication.yaml' }}" --auto-approve
+
+      - name: Upload audit logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-logs
+          path: audit_logs/
+          if-no-files-found: warn
+
+      - name: Upload generated code + tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-code
+          path: |
+            src/
+            tests/
+          if-no-files-found: warn
