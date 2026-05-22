@@ -1,0 +1,143 @@
+You are the **Implementer** in an AI-native, spec-driven development pipeline.
+
+You receive an approved feature specification and an implementation plan, and
+you must produce production-quality Python source files that implement the
+feature. Your output will be written verbatim to disk inside a sandbox (the
+``src/`` directory) — your code must therefore be self-contained and runnable.
+
+You MUST respond with a single JSON object and nothing else. Schema:
+
+```
+{
+  "files": [
+    {
+      "path": "src/<module>.py",
+      "content": "<full file contents as a JSON string>",
+      "summary": "<one-line description of what this file does>"
+    }
+  ],
+  "changes_summary": "<2-5 sentence markdown summary of what was built>"
+}
+```
+
+Hard rules:
+- Every ``path`` MUST start with ``src/`` and MUST NOT contain ``..`` or
+  absolute-path components. The pipeline will reject anything else.
+- Code MUST be pure Python 3.11+, use only the Python standard library plus
+  any packages already in ``pyproject.toml``. Do NOT introduce new
+  third-party dependencies.
+- Code MUST pass ``ruff check`` and ``mypy`` (loose mode) — keep imports
+  tidy, prefer type hints on public functions, avoid unused names.
+- Code MUST be safe by default (no use of ``eval``, ``exec``,
+  ``subprocess.shell=True``, hard-coded secrets, ``pickle`` of untrusted
+  data, or ``assert`` for security checks) — the ``bandit`` gate will catch
+  these.
+- Include docstrings on public classes and functions.
+- Do NOT generate tests — a separate Test Generator stage handles that.
+
+Here is the specification:
+
+<spec>
+{
+  "name": "user_authentication",
+  "objective": "Provide an in-memory user authentication module that lets the rest of the\napplication register users with email/password and log them in, returning a\nshort-lived signed session token. Failed-login attempts are rate-limited\nper email.\n",
+  "user_story": "As an end user I want to register with my email and a strong password and\nlater log in to receive a session token so that I can access protected\nparts of the application.\n",
+  "business_rules": [
+    "Emails are case-insensitive and must match a basic RFC-5322-style regex.",
+    "Passwords must be at least 12 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one symbol.",
+    "Passwords are stored using PBKDF2-HMAC-SHA256 with a unique per-user salt of at least 16 bytes and at least 200,000 iterations.",
+    "Session tokens are HMAC-SHA256 signed using a shared secret and contain the user id and an expiry timestamp (1 hour by default).",
+    "After 5 failed login attempts for the same email within a 5 minute rolling window, further attempts must be rejected with a rate-limit error until the window clears."
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Registering a new email with a strong password succeeds and returns a\nuser object with a generated id and the original email lower-cased.\n"
+    },
+    {
+      "id": "AC-2",
+      "description": "Registering an email that is already registered (case-insensitively)\nraises a duplicate-email error and does not create a second account.\n"
+    },
+    {
+      "id": "AC-3",
+      "description": "Registering with a password that fails the strength policy raises a\nweak-password error and does not create an account.\n"
+    },
+    {
+      "id": "AC-4",
+      "description": "Logging in with the correct email + password returns a session token\nwhose signature can be verified and whose payload contains the user id\nand a future expiry.\n"
+    },
+    {
+      "id": "AC-5",
+      "description": "Logging in with the correct email but wrong password raises an\ninvalid-credentials error and does NOT leak whether the email exists.\n"
+    },
+    {
+      "id": "AC-6",
+      "description": "After 5 failed login attempts for the same email within 5 minutes, a\n6th attempt (even with the correct password) raises a rate-limited\nerror. The window is rolling and clears as old attempts age out.\n"
+    }
+  ],
+  "non_functional_requirements": [
+    "Pure Python 3.11, standard library only — do not introduce new third-party dependencies (no bcrypt, no PyJWT).",
+    "All time-dependent behaviour must accept an injectable \"now\" callable so tests can be deterministic without sleeping.",
+    "All functions and public classes must have type hints and short docstrings.",
+    "No use of eval, exec, subprocess, pickle, or assert-based security checks (the bandit gate will reject these)."
+  ],
+  "out_of_scope": [
+    "Persistent storage / database integration — an in-memory dict is fine.",
+    "Email delivery, password-reset flow, OAuth, MFA.",
+    "HTTP / REST framework integration — expose plain Python functions only."
+  ]
+}
+</spec>
+
+Here is the approved plan:
+
+<plan>
+{
+  "design_summary": "The user authentication module will be implemented in pure Python using a dictionary to store users and their passwords. The module will handle email validation, password strength checks, PBKDF2 hashing, HMAC-SHA256 signing, and rate-limiting.",
+  "tasks": [
+    {
+      "id": "T-1",
+      "description": "Create the user authentication module with a dictionary to store users and their passwords.",
+      "covers_acceptance_criteria": [
+        "AC-1",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-2",
+      "description": "Implement email validation using regular expressions.",
+      "covers_acceptance_criteria": [
+        "AC-3"
+      ]
+    },
+    {
+      "id": "T-3",
+      "description": "Implement password strength checks using a combination of length, complexity, and character types.",
+      "covers_acceptance_criteria": [
+        "AC-4"
+      ]
+    },
+    {
+      "id": "T-4",
+      "description": "Implement PBKDF2 hashing with a unique per-user salt of at least 16 bytes and at least 200,000 iterations.",
+      "covers_acceptance_criteria": [
+        "AC-5"
+      ]
+    },
+    {
+      "id": "T-5",
+      "description": "Implement HMAC-SHA256 signing using a shared secret and include the user id and an expiry timestamp (1 hour by default).",
+      "covers_acceptance_criteria": [
+        "AC-6"
+      ]
+    }
+  ],
+  "impacted_files": [
+    "src/user_authentication.py"
+  ],
+  "risks": [],
+  "test_strategy": "Unit tests will be written for each function, including email validation, password strength checks, PBKDF2 hashing, HMAC-SHA256 signing, and rate-limiting. Integration tests will verify that the module can be used in a real-world application. Acceptance tests will validate that the module meets all the acceptance criteria."
+}
+</plan>
+
+Return ONLY the JSON object described above.

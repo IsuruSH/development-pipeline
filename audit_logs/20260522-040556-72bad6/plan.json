@@ -1,0 +1,33 @@
+{
+  "design_summary": "The user authentication module will be implemented in pure Python using a dictionary to store user data and HMAC-SHA256 for session token generation. The module will include functions for registering new users, logging in, and handling rate limiting.",
+  "tasks": [
+    {
+      "id": "T-1",
+      "description": "Implement the `register_user` function that takes an email and password as input, checks if the user already exists, generates a unique salt, hashes the password using PBKDF2-HMAC-SHA256, stores the user data in a dictionary, and returns a user object with a generated id and the original email lower-cased.",
+      "covers_acceptance_criteria": [
+        "AC-1",
+        "AC-2"
+      ]
+    },
+    {
+      "id": "T-2",
+      "description": "Implement the `login_user` function that takes an email and password as input, checks if the user exists in the dictionary, verifies the password using PBKDF2-HMAC-SHA256, generates a session token using HMAC-SHA256, and returns the session token.",
+      "covers_acceptance_criteria": [
+        "AC-4",
+        "AC-5"
+      ]
+    },
+    {
+      "id": "T-3",
+      "description": "Implement the `rate_limit` function that takes an email as input, checks if the user has exceeded the rate limit for login attempts within a 5-minute rolling window, and raises a rate-limit error if so.",
+      "covers_acceptance_criteria": [
+        "AC-6"
+      ]
+    }
+  ],
+  "impacted_files": [
+    "src/user_authentication.py"
+  ],
+  "risks": [],
+  "test_strategy": "Unit tests will be written for the `register_user` and `login_user` functions, integration tests will be written for the `rate_limit` function, and acceptance tests will be written for all acceptance criteria."
+}

@@ -1,0 +1,15 @@
+=== STDOUT ===
+src/user_authentication.py:29: error: "User" has no attribute "password"; maybe "password_hash"?  [attr-defined]
+src/user_authentication.py:33: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src/user_authentication.py:34: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src/user_authentication.py:35: note: By default the bodies of untyped functions are not checked, consider using --check-untyped-defs  [annotation-unchecked]
+src/user_authentication.py:38: error: Name "re" is not defined  [name-defined]
+src/user_authentication.py:44: error: Argument "email" to "User" has incompatible type "str"; expected "dict[Any, Any]"  [arg-type]
+src/user_authentication.py:44: error: Argument "password" to "User" has incompatible type "str"; expected "dict[Any, Any]"  [arg-type]
+src/user_authentication.py:51: error: Invalid index type "str" for "dict[tuple[str, str], datetime]"; expected type "tuple[str, str]"  [index]
+src/user_authentication.py:55: error: Invalid index type "str" for "dict[tuple[str, str], datetime]"; expected type "tuple[str, str]"  [index]
+Found 6 errors in 1 file (checked 2 source files)
+
+
+=== STDERR ===
+

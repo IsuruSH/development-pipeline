@@ -1,0 +1,66 @@
+name: user_authentication
+objective: |
+  Provide an in-memory user authentication module that lets the rest of the
+  application register users with email/password and log them in, returning a
+  short-lived signed session token. Failed-login attempts are rate-limited
+  per email.
+
+user_story: |
+  As an end user I want to register with my email and a strong password and
+  later log in to receive a session token so that I can access protected
+  parts of the application.
+
+business_rules:
+  - Emails are case-insensitive and must match a basic RFC-5322-style regex.
+  - Passwords must be at least 12 characters long and contain at least one
+    lowercase letter, one uppercase letter, one digit, and one symbol.
+  - Passwords are stored using PBKDF2-HMAC-SHA256 with a unique per-user salt
+    of at least 16 bytes and at least 200,000 iterations.
+  - Session tokens are HMAC-SHA256 signed using a shared secret and contain
+    the user id and an expiry timestamp (1 hour by default).
+  - After 5 failed login attempts for the same email within a 5 minute
+    rolling window, further attempts must be rejected with a rate-limit
+    error until the window clears.
+
+acceptance_criteria:
+  - id: AC-1
+    description: |
+      Registering a new email with a strong password succeeds and returns a
+      user object with a generated id and the original email lower-cased.
+  - id: AC-2
+    description: |
+      Registering an email that is already registered (case-insensitively)
+      raises a duplicate-email error and does not create a second account.
+  - id: AC-3
+    description: |
+      Registering with a password that fails the strength policy raises a
+      weak-password error and does not create an account.
+  - id: AC-4
+    description: |
+      Logging in with the correct email + password returns a session token
+      whose signature can be verified and whose payload contains the user id
+      and a future expiry.
+  - id: AC-5
+    description: |
+      Logging in with the correct email but wrong password raises an
+      invalid-credentials error and does NOT leak whether the email exists.
+  - id: AC-6
+    description: |
+      After 5 failed login attempts for the same email within 5 minutes, a
+      6th attempt (even with the correct password) raises a rate-limited
+      error. The window is rolling and clears as old attempts age out.
+
+non_functional_requirements:
+  - Pure Python 3.11, standard library only — do not introduce new
+    third-party dependencies (no bcrypt, no PyJWT).
+  - All time-dependent behaviour must accept an injectable "now" callable so
+    tests can be deterministic without sleeping.
+  - All functions and public classes must have type hints and short
+    docstrings.
+  - No use of eval, exec, subprocess, pickle, or assert-based security
+    checks (the bandit gate will reject these).
+
+out_of_scope:
+  - Persistent storage / database integration — an in-memory dict is fine.
+  - Email delivery, password-reset flow, OAuth, MFA.
+  - HTTP / REST framework integration — expose plain Python functions only.

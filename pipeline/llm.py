@@ -190,8 +190,18 @@ def call_json(
 ) -> tuple[dict[str, Any], LLMUsage]:
     """Call the configured provider and parse the response as JSON.
 
-    Retries once if the first response is not valid JSON, appending an
-    explicit "you must return only JSON" instruction.
+    Hardening layers, applied in order:
+
+    1. **JSON mode at the decoder.** Pass ``response_format={"type":
+       "json_object"}`` so Ollama / OpenAI constrain the model to emit a
+       valid JSON object. This stops the most common small-model failure
+       (Python-style triple quotes inside JSON) at generation time.
+    2. **Heuristic repair.** If the response still isn't parseable
+       (e.g. the model ignored the format flag), :func:`_extract_json`
+       attempts a small set of repairs — most importantly turning
+       ``\"\"\"...\"\"\"`` blocks into properly escaped JSON strings.
+    3. **One retry with a sharper prompt.** Last resort, append an
+       explicit "you must return only JSON" note and try once more.
     """
 
     cfg = _resolve_config(model)
@@ -202,10 +212,12 @@ def call_json(
         attempt_prompt = base_attempt if attempt_idx == 0 else (
             base_attempt
             + "\n\nIMPORTANT: Your previous response was not valid JSON. "
-            "Reply with ONLY a single JSON object — no markdown fences, no prose."
+            "Reply with ONLY a single JSON object — no markdown fences, no prose, "
+            'and NEVER use Python triple-quoted strings ("""..."""). Inside JSON, '
+            "multi-line content must use \\n escapes inside normal double-quoted strings."
         )
 
-        usage = _dispatch(cfg, attempt_prompt, max_tokens, temperature, system)
+        usage = _dispatch(cfg, attempt_prompt, max_tokens, temperature, system, json_mode=True)
         try:
             parsed = _extract_json(usage.raw_text)
             return parsed, usage
@@ -229,7 +241,7 @@ def call_text(
 ) -> LLMUsage:
     """Call the configured provider and return raw text (no JSON parsing)."""
     cfg = _resolve_config(model)
-    return _dispatch(cfg, prompt, max_tokens, temperature, system)
+    return _dispatch(cfg, prompt, max_tokens, temperature, system, json_mode=False)
 
 
 # ---------------------------------------------------------------------------
@@ -243,11 +255,17 @@ def _dispatch(
     max_tokens: int,
     temperature: float,
     system: str | None,
+    *,
+    json_mode: bool = False,
 ) -> LLMUsage:
     if cfg.provider == "anthropic":
+        # Claude has no `response_format` flag, but it follows JSON
+        # instructions reliably enough that we don't need post-hoc constraints.
         return _call_anthropic(cfg, prompt, max_tokens, temperature, system)
     # ollama + openai both speak the OpenAI Chat Completions API.
-    return _call_openai_compatible(cfg, prompt, max_tokens, temperature, system)
+    return _call_openai_compatible(
+        cfg, prompt, max_tokens, temperature, system, json_mode=json_mode
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -261,11 +279,18 @@ def _call_openai_compatible(
     max_tokens: int,
     temperature: float,
     system: str | None,
+    *,
+    json_mode: bool = False,
 ) -> LLMUsage:
     """POST to ``{base_url}/chat/completions``.
 
     The same wire format works for real OpenAI, Ollama, vLLM, LM Studio,
     Groq, Together, Anyscale and other OpenAI-compatible endpoints.
+
+    When ``json_mode=True`` we ask the backend to constrain decoding to a
+    valid JSON object via ``response_format={"type": "json_object"}``.
+    Ollama (>=0.1.30) and OpenAI both honour this; other providers ignore
+    unknown fields, so it's safe to send unconditionally.
     """
 
     url = f"{cfg.base_url}/chat/completions"
@@ -281,6 +306,8 @@ def _call_openai_compatible(
         "max_tokens": max_tokens,
         "stream": False,
     }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
 
     headers = {
         "Content-Type": "application/json",
@@ -398,13 +425,16 @@ def _estimate_cost(model: str, tokens_in: int, tokens_out: int) -> float:
 
 
 _JSON_FENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
+_TRIPLE_QUOTED_RE = re.compile(r'"""(.*?)"""', re.DOTALL)
 
 
 def _extract_json(raw: str) -> dict[str, Any]:
     """Extract a single JSON object from a model response.
 
     Tolerates the model wrapping its JSON in a ```json fenced block or
-    surrounding it with explanatory prose.
+    surrounding it with explanatory prose. As a last resort, runs a small
+    repair pass for the most common small-model failure: Python-style
+    triple-quoted strings used as JSON string values.
     """
 
     text = raw.strip()
@@ -421,9 +451,39 @@ def _extract_json(raw: str) -> dict[str, Any]:
 
     try:
         parsed = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"invalid JSON: {exc}") from exc
+    except json.JSONDecodeError as first_exc:
+        # Repair pass — only worth attempting if the failure looks like the
+        # triple-quote bug (otherwise we'd just be re-raising slightly later).
+        if '"""' not in text:
+            raise ValueError(f"invalid JSON: {first_exc}") from first_exc
+        repaired = _repair_triple_quoted_strings(text)
+        try:
+            parsed = json.loads(repaired)
+        except json.JSONDecodeError as repair_exc:
+            # Surface the original failure — the repair pass is a heuristic,
+            # not a guarantee.
+            raise ValueError(f"invalid JSON: {first_exc}") from repair_exc
 
     if not isinstance(parsed, dict):
         raise ValueError(f"expected a JSON object, got {type(parsed).__name__}")
     return parsed
+
+
+def _repair_triple_quoted_strings(text: str) -> str:
+    """Turn Python-style ``\"\"\"...\"\"\"`` blocks into proper JSON strings.
+
+    Small open-source models (qwen2.5-coder:1.5b, llama3.2:1b, ...)
+    occasionally reach for triple-quoted Python string literals when
+    asked to embed multi-line code in a JSON field. ``json.dumps``
+    handles every escape (``\\\\``, ``\"``, ``\\n``, ``\\t``, control
+    characters) for us, so the repair is short:
+
+    >>> repaired = _repair_triple_quoted_strings('{"x": \"\"\"a\\nb\"\"\"}')
+    >>> json.loads(repaired)
+    {'x': 'a\\nb'}
+    """
+
+    def _to_json_string(match: re.Match[str]) -> str:
+        return json.dumps(match.group(1))
+
+    return _TRIPLE_QUOTED_RE.sub(_to_json_string, text)

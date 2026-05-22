@@ -1,0 +1,22 @@
+=== STDOUT ===
+
+==================================== ERRORS ====================================
+______________ ERROR collecting tests/test_user_authentication.py ______________
+ImportError while importing test module '/app/tests/test_user_authentication.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_user_authentication.py:2: in <module>
+    from src.user_authentication import User, UserAuthenticator
+src/user_authentication.py:12: in <module>
+    from fastapi.responses import JSONResponse
+E   ModuleNotFoundError: No module named 'fastapi'
+=========================== short test summary info ============================
+ERROR tests/test_user_authentication.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+
+
+=== STDERR ===
+

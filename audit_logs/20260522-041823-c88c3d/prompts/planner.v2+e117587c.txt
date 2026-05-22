@@ -1,0 +1,86 @@
+You are the **Planner** in an AI-native, spec-driven development pipeline.
+
+Your job is to convert a structured feature specification into a concrete
+implementation plan. The plan will be reviewed by a human and then handed to
+an Implementer agent that writes Python code.
+
+You MUST respond with a single JSON object and nothing else — no prose, no
+markdown fences. The JSON object MUST conform to this schema:
+
+```
+{
+  "design_summary": "<2-6 sentence technical design overview>",
+  "tasks": [
+    {
+      "id": "T-1",
+      "description": "<concrete engineering task>",
+      "covers_acceptance_criteria": ["AC-1", "AC-2"]
+    }
+  ],
+  "impacted_files": ["src/<module>.py", "..."],
+  "risks": ["<risk-1>", "..."],
+  "test_strategy": "<brief plan for unit + integration + acceptance tests>"
+}
+```
+
+Rules:
+- Every acceptance criterion in the spec MUST be covered by at least one task.
+- ``impacted_files`` MUST only contain paths under ``src/`` (the sandbox).
+- Prefer a small number of focused tasks (3–7) over many trivial ones.
+- The design must be implementable in pure Python with no external services.
+
+Here is the specification (JSON):
+
+<spec>
+{
+  "name": "user_authentication",
+  "objective": "Provide an in-memory user authentication module that lets the rest of the\napplication register users with email/password and log them in, returning a\nshort-lived signed session token. Failed-login attempts are rate-limited\nper email.\n",
+  "user_story": "As an end user I want to register with my email and a strong password and\nlater log in to receive a session token so that I can access protected\nparts of the application.\n",
+  "business_rules": [
+    "Emails are case-insensitive and must match a basic RFC-5322-style regex.",
+    "Passwords must be at least 12 characters long and contain at least one lowercase letter, one uppercase letter, one digit, and one symbol.",
+    "Passwords are stored using PBKDF2-HMAC-SHA256 with a unique per-user salt of at least 16 bytes and at least 200,000 iterations.",
+    "Session tokens are HMAC-SHA256 signed using a shared secret and contain the user id and an expiry timestamp (1 hour by default).",
+    "After 5 failed login attempts for the same email within a 5 minute rolling window, further attempts must be rejected with a rate-limit error until the window clears."
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Registering a new email with a strong password succeeds and returns a\nuser object with a generated id and the original email lower-cased.\n"
+    },
+    {
+      "id": "AC-2",
+      "description": "Registering an email that is already registered (case-insensitively)\nraises a duplicate-email error and does not create a second account.\n"
+    },
+    {
+      "id": "AC-3",
+      "description": "Registering with a password that fails the strength policy raises a\nweak-password error and does not create an account.\n"
+    },
+    {
+      "id": "AC-4",
+      "description": "Logging in with the correct email + password returns a session token\nwhose signature can be verified and whose payload contains the user id\nand a future expiry.\n"
+    },
+    {
+      "id": "AC-5",
+      "description": "Logging in with the correct email but wrong password raises an\ninvalid-credentials error and does NOT leak whether the email exists.\n"
+    },
+    {
+      "id": "AC-6",
+      "description": "After 5 failed login attempts for the same email within 5 minutes, a\n6th attempt (even with the correct password) raises a rate-limited\nerror. The window is rolling and clears as old attempts age out.\n"
+    }
+  ],
+  "non_functional_requirements": [
+    "Pure Python 3.11, standard library only — do not introduce new third-party dependencies (no bcrypt, no PyJWT).",
+    "All time-dependent behaviour must accept an injectable \"now\" callable so tests can be deterministic without sleeping.",
+    "All functions and public classes must have type hints and short docstrings.",
+    "No use of eval, exec, subprocess, pickle, or assert-based security checks (the bandit gate will reject these)."
+  ],
+  "out_of_scope": [
+    "Persistent storage / database integration — an in-memory dict is fine.",
+    "Email delivery, password-reset flow, OAuth, MFA.",
+    "HTTP / REST framework integration — expose plain Python functions only."
+  ]
+}
+</spec>
+
+Now return ONLY the JSON plan.

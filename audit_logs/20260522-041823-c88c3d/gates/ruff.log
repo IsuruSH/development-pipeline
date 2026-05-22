@@ -1,0 +1,399 @@
+=== STDOUT ===
+UP035 `typing.Dict` is deprecated, use `dict` instead
+ --> src/user_authentication.py:1:1
+  |
+1 | from typing import Dict, Optional, Tuple
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2 | import hashlib
+3 | import hmac
+  |
+
+UP035 `typing.Tuple` is deprecated, use `tuple` instead
+ --> src/user_authentication.py:1:1
+  |
+1 | from typing import Dict, Optional, Tuple
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2 | import hashlib
+3 | import hmac
+  |
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> src/user_authentication.py:1:1
+   |
+ 1 | / from typing import Dict, Optional, Tuple
+ 2 | | import hashlib
+ 3 | | import hmac
+ 4 | | import time
+ 5 | | import random
+ 6 | | import string
+ 7 | | from datetime import datetime, timedelta
+ 8 | | from functools import lru_cache
+ 9 | | from collections import defaultdict
+10 | | from typing_extensions import Literal
+11 | | from pydantic import BaseModel, ValidationError
+12 | | from fastapi.responses import JSONResponse
+13 | | from fastapi.security import OAuth2PasswordBearer
+14 | | from fastapi import Depends, HTTPException
+15 | | from jose import JWTError, jwt
+16 | | from passlib.context import CryptContext
+   | |________________________________________^
+17 |
+18 |   crypto_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+   |
+help: Organize imports
+
+F401 [*] `hashlib` imported but unused
+ --> src/user_authentication.py:2:8
+  |
+1 | from typing import Dict, Optional, Tuple
+2 | import hashlib
+  |        ^^^^^^^
+3 | import hmac
+4 | import time
+  |
+help: Remove unused import: `hashlib`
+
+F401 [*] `hmac` imported but unused
+ --> src/user_authentication.py:3:8
+  |
+1 | from typing import Dict, Optional, Tuple
+2 | import hashlib
+3 | import hmac
+  |        ^^^^
+4 | import time
+5 | import random
+  |
+help: Remove unused import: `hmac`
+
+F401 [*] `time` imported but unused
+ --> src/user_authentication.py:4:8
+  |
+2 | import hashlib
+3 | import hmac
+4 | import time
+  |        ^^^^
+5 | import random
+6 | import string
+  |
+help: Remove unused import: `time`
+
+F401 [*] `random` imported but unused
+ --> src/user_authentication.py:5:8
+  |
+3 | import hmac
+4 | import time
+5 | import random
+  |        ^^^^^^
+6 | import string
+7 | from datetime import datetime, timedelta
+  |
+help: Remove unused import: `random`
+
+F401 [*] `functools.lru_cache` imported but unused
+  --> src/user_authentication.py:8:23
+   |
+ 6 | import string
+ 7 | from datetime import datetime, timedelta
+ 8 | from functools import lru_cache
+   |                       ^^^^^^^^^
+ 9 | from collections import defaultdict
+10 | from typing_extensions import Literal
+   |
+help: Remove unused import: `functools.lru_cache`
+
+UP035 [*] Import from `typing` instead: `Literal`
+  --> src/user_authentication.py:10:1
+   |
+ 8 | from functools import lru_cache
+ 9 | from collections import defaultdict
+10 | from typing_extensions import Literal
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11 | from pydantic import BaseModel, ValidationError
+12 | from fastapi.responses import JSONResponse
+   |
+help: Import from `typing`
+
+F401 [*] `typing_extensions.Literal` imported but unused
+  --> src/user_authentication.py:10:31
+   |
+ 8 | from functools import lru_cache
+ 9 | from collections import defaultdict
+10 | from typing_extensions import Literal
+   |                               ^^^^^^^
+11 | from pydantic import BaseModel, ValidationError
+12 | from fastapi.responses import JSONResponse
+   |
+help: Remove unused import: `typing_extensions.Literal`
+
+F401 [*] `pydantic.ValidationError` imported but unused
+  --> src/user_authentication.py:11:33
+   |
+ 9 | from collections import defaultdict
+10 | from typing_extensions import Literal
+11 | from pydantic import BaseModel, ValidationError
+   |                                 ^^^^^^^^^^^^^^^
+12 | from fastapi.responses import JSONResponse
+13 | from fastapi.security import OAuth2PasswordBearer
+   |
+help: Remove unused import: `pydantic.ValidationError`
+
+F401 [*] `fastapi.responses.JSONResponse` imported but unused
+  --> src/user_authentication.py:12:31
+   |
+10 | from typing_extensions import Literal
+11 | from pydantic import BaseModel, ValidationError
+12 | from fastapi.responses import JSONResponse
+   |                               ^^^^^^^^^^^^
+13 | from fastapi.security import OAuth2PasswordBearer
+14 | from fastapi import Depends, HTTPException
+   |
+help: Remove unused import: `fastapi.responses.JSONResponse`
+
+F401 [*] `fastapi.Depends` imported but unused
+  --> src/user_authentication.py:14:21
+   |
+12 | from fastapi.responses import JSONResponse
+13 | from fastapi.security import OAuth2PasswordBearer
+14 | from fastapi import Depends, HTTPException
+   |                     ^^^^^^^
+15 | from jose import JWTError, jwt
+16 | from passlib.context import CryptContext
+   |
+help: Remove unused import: `fastapi.Depends`
+
+F401 [*] `jose.JWTError` imported but unused
+  --> src/user_authentication.py:15:18
+   |
+13 | from fastapi.security import OAuth2PasswordBearer
+14 | from fastapi import Depends, HTTPException
+15 | from jose import JWTError, jwt
+   |                  ^^^^^^^^
+16 | from passlib.context import CryptContext
+   |
+help: Remove unused import: `jose.JWTError`
+
+UP045 [*] Use `X | None` for type annotations
+  --> src/user_authentication.py:24:20
+   |
+22 |     id: int
+23 |     email: str
+24 |     password_hash: Optional[str] = None
+   |                    ^^^^^^^^^^^^^
+25 |
+26 |     def __init__(self, **data: dict):
+   |
+help: Convert to `X | None`
+
+UP006 [*] Use `dict` instead of `Dict` for type annotation
+  --> src/user_authentication.py:33:21
+   |
+31 | class UserAuthenticator:
+32 |     def __init__(self):
+33 |         self.users: Dict[str, User] = defaultdict(User)
+   |                     ^^^^
+34 |         self.rate_limits: Dict[Tuple[str, str], int] = defaultdict(int)
+35 |         self.lockout_time: Dict[Tuple[str, str], datetime] = defaultdict(datetime)
+   |
+help: Replace with `dict`
+
+UP006 [*] Use `dict` instead of `Dict` for type annotation
+  --> src/user_authentication.py:34:27
+   |
+32 |     def __init__(self):
+33 |         self.users: Dict[str, User] = defaultdict(User)
+34 |         self.rate_limits: Dict[Tuple[str, str], int] = defaultdict(int)
+   |                           ^^^^
+35 |         self.lockout_time: Dict[Tuple[str, str], datetime] = defaultdict(datetime)
+   |
+help: Replace with `dict`
+
+UP006 [*] Use `tuple` instead of `Tuple` for type annotation
+  --> src/user_authentication.py:34:32
+   |
+32 |     def __init__(self):
+33 |         self.users: Dict[str, User] = defaultdict(User)
+34 |         self.rate_limits: Dict[Tuple[str, str], int] = defaultdict(int)
+   |                                ^^^^^
+35 |         self.lockout_time: Dict[Tuple[str, str], datetime] = defaultdict(datetime)
+   |
+help: Replace with `tuple`
+
+UP006 [*] Use `dict` instead of `Dict` for type annotation
+  --> src/user_authentication.py:35:28
+   |
+33 |         self.users: Dict[str, User] = defaultdict(User)
+34 |         self.rate_limits: Dict[Tuple[str, str], int] = defaultdict(int)
+35 |         self.lockout_time: Dict[Tuple[str, str], datetime] = defaultdict(datetime)
+   |                            ^^^^
+36 |
+37 |     async def register(self, email: str, password: str) -> User:
+   |
+help: Replace with `dict`
+
+UP006 [*] Use `tuple` instead of `Tuple` for type annotation
+  --> src/user_authentication.py:35:33
+   |
+33 |         self.users: Dict[str, User] = defaultdict(User)
+34 |         self.rate_limits: Dict[Tuple[str, str], int] = defaultdict(int)
+35 |         self.lockout_time: Dict[Tuple[str, str], datetime] = defaultdict(datetime)
+   |                                 ^^^^^
+36 |
+37 |     async def register(self, email: str, password: str) -> User:
+   |
+help: Replace with `tuple`
+
+F821 Undefined name `re`
+  --> src/user_authentication.py:38:16
+   |
+37 |     async def register(self, email: str, password: str) -> User:
+38 |         if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+␈', email):
+   |                ^^
+39 |             raise HTTPException(status_code=422, detail='Invalid email format')
+40 |         if len(password) < 12 or not any(char.islower() for char in password) or not any(char.isupper() for char in password) or not a…
+   |
+
+I001 [*] Import block is un-sorted or un-formatted
+ --> tests/test_user_authentication.py:1:1
+  |
+1 | / import pytest
+2 | | from src.user_authentication import User, UserAuthenticator
+3 | | from datetime import datetime, timedelta
+4 | | from jose import JWTError, jwt
+5 | | from passlib.context import CryptContext
+  | |________________________________________^
+6 |
+7 |   crypto_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+  |
+help: Organize imports
+
+F401 [*] `src.user_authentication.User` imported but unused
+ --> tests/test_user_authentication.py:2:37
+  |
+1 | import pytest
+2 | from src.user_authentication import User, UserAuthenticator
+  |                                     ^^^^
+3 | from datetime import datetime, timedelta
+4 | from jose import JWTError, jwt
+  |
+help: Remove unused import: `src.user_authentication.User`
+
+F401 [*] `datetime.datetime` imported but unused
+ --> tests/test_user_authentication.py:3:22
+  |
+1 | import pytest
+2 | from src.user_authentication import User, UserAuthenticator
+3 | from datetime import datetime, timedelta
+  |                      ^^^^^^^^
+4 | from jose import JWTError, jwt
+5 | from passlib.context import CryptContext
+  |
+help: Remove unused import
+
+F401 [*] `datetime.timedelta` imported but unused
+ --> tests/test_user_authentication.py:3:32
+  |
+1 | import pytest
+2 | from src.user_authentication import User, UserAuthenticator
+3 | from datetime import datetime, timedelta
+  |                                ^^^^^^^^^
+4 | from jose import JWTError, jwt
+5 | from passlib.context import CryptContext
+  |
+help: Remove unused import
+
+F821 Undefined name `OAuth2PasswordBearer`
+  --> tests/test_user_authentication.py:8:17
+   |
+ 7 | crypto_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+ 8 | oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/token')
+   |                 ^^^^^^^^^^^^^^^^^^^^
+ 9 |
+10 | class TestUserAuthentication:
+   |
+
+F821 Undefined name `HTTPException`
+  --> tests/test_user_authentication.py:20:28
+   |
+18 |         authenticator = UserAuthenticator()
+19 |         authenticator.register("alice@example.com", "hunter2")
+20 |         with pytest.raises(HTTPException) as exc:
+   |                            ^^^^^^^^^^^^^
+21 |             authenticator.register("alice@example.com", "another_password")
+22 |         assert exc.value.status_code == 409
+   |
+
+F821 Undefined name `HTTPException`
+  --> tests/test_user_authentication.py:27:28
+   |
+25 |     def test_register_weak_password(self):
+26 |         authenticator = UserAuthenticator()
+27 |         with pytest.raises(HTTPException) as exc:
+   |                            ^^^^^^^^^^^^^
+28 |             authenticator.register("alice@example.com", "short")
+29 |         assert exc.value.status_code == 422
+   |
+
+F841 Local variable `user` is assigned to but never used
+  --> tests/test_user_authentication.py:34:9
+   |
+32 |     def test_login_correct_password(self):
+33 |         authenticator = UserAuthenticator()
+34 |         user = authenticator.register("alice@example.com", "hunter2")
+   |         ^^^^
+35 |         token = authenticator.login("alice@example.com", "hunter2")
+36 |         try:
+   |
+help: Remove assignment to unused variable `user`
+
+F841 Local variable `user` is assigned to but never used
+  --> tests/test_user_authentication.py:43:9
+   |
+41 |     def test_login_correct_email_wrong_password(self):
+42 |         authenticator = UserAuthenticator()
+43 |         user = authenticator.register("alice@example.com", "hunter2")
+   |         ^^^^
+44 |         with pytest.raises(HTTPException) as exc:
+45 |             authenticator.login("alice@example.com", "wrong_password")
+   |
+help: Remove assignment to unused variable `user`
+
+F821 Undefined name `HTTPException`
+  --> tests/test_user_authentication.py:44:28
+   |
+42 |         authenticator = UserAuthenticator()
+43 |         user = authenticator.register("alice@example.com", "hunter2")
+44 |         with pytest.raises(HTTPException) as exc:
+   |                            ^^^^^^^^^^^^^
+45 |             authenticator.login("alice@example.com", "wrong_password")
+46 |         assert exc.value.status_code == 401
+   |
+
+F841 Local variable `user` is assigned to but never used
+  --> tests/test_user_authentication.py:51:9
+   |
+49 |     def test_login_rate_limit(self):
+50 |         authenticator = UserAuthenticator()
+51 |         user = authenticator.register("alice@example.com", "hunter2")
+   |         ^^^^
+52 |         for _ in range(6):
+53 |             authenticator.login("alice@example.com", "hunter2")
+   |
+help: Remove assignment to unused variable `user`
+
+F821 Undefined name `HTTPException`
+  --> tests/test_user_authentication.py:54:28
+   |
+52 |         for _ in range(6):
+53 |             authenticator.login("alice@example.com", "hunter2")
+54 |         with pytest.raises(HTTPException) as exc:
+   |                            ^^^^^^^^^^^^^
+55 |             authenticator.login("alice@example.com", "hunter2")
+56 |         assert exc.value.status_code == 429
+   |
+
+Found 33 errors.
+[*] 22 fixable with the `--fix` option (3 hidden fixes can be enabled with the `--unsafe-fixes` option).
+
+
+=== STDERR ===
+
