@@ -1,4 +1,4 @@
-# spec-pipeline
+# development-pipeline
 
 An AI-native, spec-driven development pipeline. Feed it a structured
 feature spec and it plans, implements, tests, and validates the feature
@@ -149,17 +149,29 @@ full example. The schema is enforced by
   recorded to the audit log.
 - **Prompt version stamping** — every template hash is captured in every
   audit event, so a run is exactly reproducible.
+- **CI security scan** — `bandit` (SAST) + `pip-audit` (dependency CVEs)
+  run on every push / PR; see [CI](#ci) below.
 
 ---
 
 ## CI
 
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — lints,
-  type-checks, and tests the pipeline itself on every push / PR.
-- [`.github/workflows/pipeline-run.yml`](.github/workflows/pipeline-run.yml)
-  — runs the pipeline end-to-end on the example spec and uploads
-  `audit_logs/`, `src/`, `tests/` as artefacts. That's the "deployment
-  evidence" the assessment asks for.
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push
+to `main` and every pull request. It has two parallel jobs:
+
+| Job | Steps | Fails the build on |
+| --- | --- | --- |
+| `lint-type-test` | `ruff` → `mypy` → `pytest tests/pipeline_*.py` | any lint, type, or test failure in the pipeline source |
+| `security` | `bandit -r pipeline run_pipeline.py -ll` → `pip-audit --skip-editable` | any Medium+ SAST finding, or any known CVE in the resolved dependency tree |
+
+The `security` job is the CI-level mirror of the in-pipeline `bandit` quality
+gate (which scans the *generated* code) — together they cover both the
+pipeline's own source and every run's output.
+
+End-to-end pipeline runs aren't wired into CI yet because the LLM call
+would either need an API key secret (OpenAI / Anthropic) or a ~1 GB
+Ollama model download on every run. The artefacts an end-to-end run
+produces locally (`audit_logs/<run_id>/`) are committed as evidence.
 
 ---
 

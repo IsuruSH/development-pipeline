@@ -19,7 +19,7 @@ jobs:
 
       - name: Install pipeline + dev deps
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip "setuptools>=78.1.1" wheel
           pip install -e ".[dev]"
 
       - name: Ruff (pipeline source)
@@ -30,5 +30,37 @@ jobs:
 
       - name: Pytest (pipeline own tests)
         # Run only the hand-written pipeline tests (e.g. sandbox guard).
-        # Generated tests live in tests/test_*.py and require an end-to-end run.
-        run: pytest tests/pipeline_*.py
+        # Generated tests live in tests/test_*.py and require an
+        # end-to-end run; --ignore-glob skips them here.
+        run: pytest tests/ --ignore-glob="tests/test_*.py"
+
+  security:
+    name: security scan (bandit + pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install pipeline + dev deps
+        run: |
+          python -m pip install --upgrade pip "setuptools>=78.1.1" wheel
+          pip install -e ".[dev]"
+
+      # Bandit — static analysis for common Python security issues
+      # (subprocess shell=True, yaml.load, eval/exec, weak crypto, etc.).
+      # Config (excluded dirs, skipped tests) lives in pyproject.toml.
+      # Fails the build on any Medium+ severity finding.
+      - name: Bandit (SAST on pipeline source)
+        run: bandit -r pipeline run_pipeline.py -ll
+
+      # pip-audit — checks installed deps against the PyPI advisory DB
+      # (PYSEC + GHSA). --skip-editable skips the spec-pipeline package
+      # itself (it's not on PyPI). The default exit-on-finding behaviour
+      # already fails the build on any known CVE; we don't use --strict
+      # because it'd flag our own editable package as unauditable.
+      - name: pip-audit (dependency CVEs)
+        run: pip-audit --skip-editable
